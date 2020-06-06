@@ -17,6 +17,21 @@ TODO
 3. Those measurements are inputs of the neural network that predicts the action.
 4. The neural network learns using an evolutionary algorithm.
 
+
+## Actions
+Variety of inputs / Input possibilities:
+	1. (**k** sensors measurements)
+	2. (**k** sensors measurements, actual speed, actual angle)
+
+Outputs:
+	1. (angle) - speed is fixed
+	2. (angle change, acceleration change)
+
+
+## Objective function
+- Yellow checkpoints
+
+
 ## Screenshots
 ![Example screenshot](/videos/scanners.gif)
 
