@@ -2,21 +2,24 @@ from PIL import Image
 import pygame
 import numpy as np
 import time
-
+import json
 
 from cars import car
 from genetic_algorithms import ES
 
-tracks_params = {
+TRACKS_PARAMS = {
     1: {'x': 570, 'y': 360, 'angle': 0},
     2: {},
     3: {}
 }
 
-checkpoints = {
+CHECKPOINT_AWARD = {
     1: [(530, 600), (150, 600), (150, 160), (530, 160)]
 
 }
+
+BEST_CARS = json.load(open('cars/best_cars.json', encoding='utf-8'))
+BEST_CARS = {float(k): v for k, v in BEST_CARS.items()}
 
 
 def load_racing_tracks(k):
@@ -49,20 +52,29 @@ def load_checkpoints(k):
 
 
 def draw_checkpoints(win):
-    for i, t in enumerate(checkpoints[track]):
+    for i, t in enumerate(CHECKPOINT_AWARD[track]):
         x, y = t
         pygame.draw.circle(win, (255, 255, 0), (x, y), 8)
         id = font2.render(f'{i}', True, (255, 255, 0))
         win.blit(id, dest=(x - 6, y + 12))
 
 
+def load_best_cars():
+    pass
+
+
 '''
 TODO:
 1. Neural net visualization, augment the track
-2. space
+2. space desc and additional keys
 3. ES desc
 4. save weights
+5. top cars, best weights
+6. krzyzowanie sieci
+7. wykres kiedy skrzyzowane sieci daly cos lepszego
+8. track 3 to test track
 '''
+
 if __name__ == '__main__':
     pygame.init()
     pygame.display.set_caption("Evolutionary cars")
@@ -80,18 +92,20 @@ if __name__ == '__main__':
     font2 = pygame.font.Font(pygame.font.get_default_font(), 24)
 
     gen = font.render('Generation: 1', True, (0, 0, 255))
+    top = font.render('Top cars:', True, (0, 0, 255))
 
-    n_cars = 30
+    n_cars = 20
     cars = [car.Car(
-                id=i,
-                x=tracks_params[track]['x'],
-                y=tracks_params[track]['y'],
-                n_sensors=5,
-                sprite_path='images/cars/car.png')
-            for i in range(n_cars)]
+        id=i,
+        x=TRACKS_PARAMS[track]['x'],
+        y=TRACKS_PARAMS[track]['y'],
+        n_sensors=5,
+        sprite_path='images/cars/car.png')
+        for i in range(n_cars)]
 
     n_parameters = cars[0].n_parameters
-    genetic_model = ES.ES(mu=n_cars, lambda_=5, chromosome_len=n_parameters, K=1)
+    genetic_model = ES.ES(mu=n_cars, lambda_=5,
+                          chromosome_len=n_parameters, K=1)
 
     running = True
     n_gen = 0
@@ -104,20 +118,25 @@ if __name__ == '__main__':
         keys = pygame.key.get_pressed()
         if keys[pygame.K_SPACE]:
             for c in cars:
-                nc = checkpoints[track][c.next_checkpoint]
-                c.objective_value -= np.sqrt((c.x - nc[0]) ** 2 + (c.y - nc[1]) ** 2)
+                nc = CHECKPOINT_AWARD[track][c.next_checkpoint]
+                c.objective_value -= np.sqrt(
+                    (c.x - nc[0]) ** 2 + (c.y - nc[1]) ** 2
+                )
                 c.dead = True
 
         win.blit(background, dest=(0, 0))
 
         for c in cars:
-            c.update_position(TRACK_MAP, CHECKPOINTS_MAPS, checkpoints[track])
+            c.update_position(TRACK_MAP, CHECKPOINTS_MAPS, CHECKPOINT_AWARD[track])
             c.predict_move()
             c.draw(win)
 
         win.blit(gen, (600, 0))
+        win.blit(top, (1200, 0))
+        for i in range(1, 11):
+            car_score = font2.render(f'{i - 1}. ???', True, (0, 0, 255))
+            win.blit(car_score, (1200, 30*i + 10))
         draw_checkpoints(win)
-        pygame.display.update()
 
         dead_cars = sum([c.dead for c in cars])
         if dead_cars == n_cars:
@@ -138,10 +157,12 @@ if __name__ == '__main__':
                 if c.id in ids:
                     sprite_path = 'images/cars/car2.png'
 
+                BEST_CARS[c.objective_value] = c.genotype.tolist()
+
                 c.sprite = pygame.image.load(sprite_path)
                 c.sprite = pygame.transform.scale(c.sprite, c.sprite_size)
-                c.x = tracks_params[track]['x']
-                c.y = tracks_params[track]['y']
+                c.x = TRACKS_PARAMS[track]['x']
+                c.y = TRACKS_PARAMS[track]['y']
                 c.dead = False
                 c.velocity = 0
                 c.angle = 0
@@ -149,6 +170,13 @@ if __name__ == '__main__':
                 c.genotype = new_genotypes[i]
                 c.next_checkpoint = 0
                 c.objective_value = 1
+            while len(BEST_CARS) > 10:
+                BEST_CARS.pop(min(BEST_CARS))
+
+            with open('cars/best_cars.json', 'w') as outfile:
+                json.dump(BEST_CARS, outfile, ensure_ascii=False)
+
+        pygame.display.update()
 
     genetic_model.plot_cost()
     genetic_model.plot_sigmas(genetic_model.best_sigmas_history, mode='best')

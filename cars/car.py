@@ -1,11 +1,13 @@
 import pygame
 import numpy as np
 import sys
-sys.path.insert(0, '..')
 from neural_network import nn
 from functools import reduce
 import torch
 import time
+
+sys.path.insert(0, '..')
+CHECKPOINT_AWARD = 100000
 
 
 class Car:
@@ -31,11 +33,11 @@ class Car:
 
         self.network = nn.Network(
             in_dim=n_sensors + 2,  # n_sensors + act_velocity + act angle
-            h1=3,
-            h2=2,
+            h1=4,
+            h2=3,
             out_dim=2
         )
-        self.n_parameters = sum(reduce(lambda a, b: a*b, x.size())
+        self.n_parameters = sum(reduce(lambda a, b: a * b, x.size())
                                 for x in self.network.parameters())
 
         self.genotype = np.random.normal(0, 0.1, self.n_parameters)
@@ -67,7 +69,6 @@ class Car:
         self.velocity += preds[0]
         self.angle += preds[1]
 
-
     def update_position(self, TRACK_MAP, CHECKPOINTS_MAPS, checkpoints):
         if self.dead:
             return
@@ -82,7 +83,7 @@ class Car:
 
         if not CHECKPOINTS_MAPS[self.next_checkpoint][car_position[1], car_position[0]]:
             # print(f'CAR: {self.id} REACHED {self.next_checkpoint}')
-            self.objective_value += 10000
+            self.objective_value += CHECKPOINT_AWARD
             self.next_checkpoint += 1
             self.next_checkpoint %= 4
 
