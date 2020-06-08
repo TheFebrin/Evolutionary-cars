@@ -65,7 +65,7 @@ class Car:
                 idx += w_size
 
         X = torch.tensor(self.sensors_readings + [self.velocity, self.angle])
-        preds = self.network(X).detach().numpy()
+        preds = self.network(X.float()).detach().numpy()
         self.velocity += preds[0]
         self.angle += preds[1]
 

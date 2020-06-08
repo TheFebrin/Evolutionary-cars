@@ -92,7 +92,7 @@ if __name__ == '__main__':
     font2 = pygame.font.Font(pygame.font.get_default_font(), 24)
 
     gen = font.render('Generation: 1', True, (0, 0, 255))
-    top = font.render('Top cars:', True, (0, 0, 255))
+    top = font.render('Top cars (#laps):', True, (0, 0, 255))
 
     n_cars = 20
     cars = [car.Car(
@@ -132,10 +132,14 @@ if __name__ == '__main__':
             c.draw(win)
 
         win.blit(gen, (600, 0))
-        win.blit(top, (1200, 0))
+        win.blit(top, (1150, 0))
+
+        best_cars_iter = iter(BEST_CARS.items())
         for i in range(1, 11):
-            car_score = font2.render(f'{i - 1}. ???', True, (0, 0, 255))
-            win.blit(car_score, (1200, 30*i + 10))
+            act = next(best_cars_iter, False)
+            car_score = font2.render(f'{i - 1}. {act[0] // cars.CHECKPOINT_AWARD}', True, (0, 0, 255)) if act \
+                            else font2.render(f'{i - 1}. ???', True, (0, 0, 255))
+            win.blit(car_score, (1150, 30*i + 10))
         draw_checkpoints(win)
 
         dead_cars = sum([c.dead for c in cars])
