@@ -64,7 +64,7 @@ class Car:
                     raise ValueError('Unknown parameter name "%s"' % name)
                 idx += w_size
 
-        X = torch.tensor(self.sensors_readings + [self.velocity, self.angle])
+        X = torch.Tensor(self.sensors_readings + [self.velocity, self.angle])
         preds = self.network(X.float()).detach().numpy()
         self.velocity += preds[0]
         self.angle += preds[1]
