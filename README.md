@@ -3,6 +3,9 @@
 
 ## Table of contents
 * [General info](#general-info)
+* [Neural network](#neural-network)
+* [Objective function](#objective-function)
+* [Genetic algorithm](#genetic-algorithm)
 * [Screenshots](#screenshots)
 * [Technologies](#technologies)
 * [Libraries](#libraries)
@@ -10,26 +13,38 @@
 * [Status](#status)
 
 ## General info
-TODO
 
+#### Cars:
 1. Each car has **k** sensors.
-2. Each sensor detects the distance from the car to the race track barrier.
+2. Car's position is calculated using its current velocity and angle.
+3. Each sensor detects the distance from the car to the race track barrier.
 3. Those measurements are inputs of the neural network that predicts the action.
 4. The neural network learns using an evolutionary algorithm.
+5. Car's velocity and angle are changed according to the network's output.
+
+#### Tracks:
+TODO
+
+#### Miscellaneous:
+1. Program saves best cars it has seen.
+TODO
 
 
-## Actions
-Variety of inputs / Input possibilities:
-	1. (**k** sensors measurements)
-	2. (**k** sensors measurements, actual speed, actual angle)
+## Neural network
+I used a simple network with 2 hidden layers.
+![Network](/images/network.jpg)
 
-Outputs:
-	1. (angle) - speed is fixed
-	2. (angle change, acceleration change)
+* Input Layer:
+	(**k** sensors measurements, actual speed, actual angle)
 
+* Output Layer:
+	(angle change, acceleration change)
 
 ## Objective function
-- Yellow checkpoints
+As it's quite hard to define an objective function I created checkpoints.
+
+* When a car reaches a checkpoint it earns points.
+* It is punished for the distance to the next checkpoint.
 
 
 ## Genetic algorithm
@@ -43,7 +58,12 @@ Outputs:
 
 2. Crossover
 
-	We have two parent neural networks N1 and N2. The goal is to produce an offspring network N3.
+	Parents chosen in the previous step pair up to produce offspring.
+	Each pair produces one child.
+	Produced children make up half of the next generation.
+	The remaining half are their parents.
+
+	We have two parent neural networks *N1* and *N2*. The goal is to produce an offspring network *N3*.
 	We do as follows:
 	1. Generate 2k random genotypes.
 	2. Feed k samples to each parent network.
@@ -52,11 +72,15 @@ Outputs:
 
 
 3. Mutation
+
 TODO
 
 
 ## Screenshots
-![Example screenshot](/videos/scanners.gif)
+* Sensor
+	![Example screenshot](/videos/scanners.gif)
+
+* TODO
 
 ## Technologies
 * Python - version 3.7.3
