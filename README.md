@@ -35,7 +35,8 @@ Outputs:
 ## Genetic algorithm
 1. Parent Selection
 
-	From the current population, we choose *parents* such that the probability of choosing a parent $p$ is equal to its fitness value f(x)
+	From the current population, we choose *parents* such that the probability of choosing a parent *p* is equal to its fitness value *f(x)*, where:
+	 <img src="https://render.githubusercontent.com/render/math?math=f(x_i) = \frac{F(x_i) - F_{min}}{\sum_{j=1}^{n}(F(x_j)-F_{min})}"> and *F(x) is an objective function value*.
 
 2. Crossover
 
