@@ -32,6 +32,25 @@ Outputs:
 - Yellow checkpoints
 
 
+## Genetic algorithm
+1. Parent Selection
+
+	From the current population, we choose *parents* such that the probability of choosing a parent $p$ is equal to its fitness value f(x)
+
+2. Crossover
+
+	We have two parent neural networks N1 and N2. The goal is to produce an offspring network N3.
+	We do as follows:
+	1. Generate 2k random genotypes.
+	2. Feed k samples to each parent network.
+	3. We obtain 2k outputs and treat it like a training dataset.
+	3. We train N3 using this data.
+
+
+3. Mutation
+TODO
+
+
 ## Screenshots
 ![Example screenshot](/videos/scanners.gif)
 
