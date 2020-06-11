@@ -60,8 +60,7 @@ As it's quite hard to define an objective function I created checkpoints.
 
 	Parents chosen in the previous step pair up to produce offspring.
 	Each pair produces one child.
-	Produced children make up half of the next generation.
-	The remaining half are their parents.
+	We draw *n* such pairs, where *n* is a population size.
 
 	We have two parent neural networks *N1* and *N2*. The goal is to produce an offspring network *N3*.
 	We do as follows:
