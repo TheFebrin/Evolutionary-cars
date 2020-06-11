@@ -20,6 +20,8 @@ class Network(nn.Module):
 
 
 '''
+# Playground
+
 if __name__ == '__main__':
     model = Network(in_dim=3, h1=4, h2=4, out_dim=2)
     p = sum(reduce( lambda a, b: a*b, x.size()) for x in model.parameters())
@@ -27,12 +29,23 @@ if __name__ == '__main__':
 
     with torch.no_grad():
         for name, p in model.named_parameters():
-            print(name, p)
-
+            # print(name, p)
             if 'weight' in name:
                 p.copy_(torch.ones(p.shape))
             elif 'bias' in name:
                 p.zero_()
             else:
                 raise ValueError('Unknown parameter name "%s"' % name)
+
+    all_params = []
+    with torch.no_grad():
+        for name, p in model.named_parameters():
+            # print(name, p)
+            print(p.detach().numpy().ravel())
+            all_params += list(p.detach().numpy().ravel())
+
+    print('----------------------------------------------------------')
+    print(all_params)
+
+
 '''
