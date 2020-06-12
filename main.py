@@ -7,7 +7,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.backends.backend_agg as agg
 from cars import car
-from genetic_algorithms import ES, genetic_algorithm
+from genetic_algorithms import genetic_algorithm
 matplotlib.use("Agg")
 
 TRACKS_PARAMS = {
@@ -22,7 +22,7 @@ CHECKPOINT_AWARD = {
 }
 
 BEST_CARS = {}
-N_BEST_CARS = 5
+N_BEST_CARS = 20
 actual_best = 0
 
 
@@ -75,6 +75,10 @@ def draw_info(win):
     space_text = font.render(space, True, (0, 255, 100))
     win.blit(space_text, dest=(700, 150))
 
+    L = '(L) - load hall of fame'
+    l_text = font.render(L, True, (0, 255, 100))
+    win.blit(l_text, dest=(700, 200))
+
 
 fig = plt.figure(figsize=[6, 4])
 ax = fig.add_subplot(111)
@@ -117,8 +121,6 @@ def load_best_cars(model, cars_list, s):
     for i, t in enumerate(BEST_CARS.items()):
         if i >= len(cars_list):
             break
-        # cars_list[i].genotype = np.array(t[1])
-        # cars_list[i].objective_value = t[0]
         model.population[i] = np.array(t[1])
 
 
@@ -133,11 +135,13 @@ def draw_hall_of_fame(win):
     best_cars.sort(reverse=True)
     for i, score in enumerate(best_cars):
         car_score = font.render(
-            f'{i}. {score / car.CHECKPOINT_AWARD:.5f}',
+            f'{i + 1}. {score / car.CHECKPOINT_AWARD:.5f}',
             True,
             (0, 0, 255)
         )
         win.blit(car_score, dest=(1050, 50*(i + 1) + 10))
+        if i >= 4:
+            break
 
 
 def update_cars_population(genetic_model, cars_list, win):
@@ -204,9 +208,9 @@ if __name__ == '__main__':
     font = pygame.font.Font('font/font.ttf', 40)
 
     gen = font.render('Generation: 1', True, (0, 0, 255))
-    top = font.render('Hall of fame (#laps):', True, (0, 0, 255))
+    top = font.render('Hall of fame:', True, (0, 0, 255))
 
-    n_cars = 10
+    n_cars = 30
     n_sensors = 7
     cars_list = [car.Car(
         id=i,
@@ -244,6 +248,10 @@ if __name__ == '__main__':
                 c.objective_value -= (  # no sqrt
                     (c.x - nc[0]) ** 2 + (c.y - nc[1]) ** 2
                 )
+                c.dead = True
+        if keys[pygame.K_l]:  # l loads hall of fame cars
+            load_best_cars(genetic_model, cars_list, n_sensors)
+            for c in cars_list:
                 c.dead = True
 
         win.blit(background, dest=(0, 0))
