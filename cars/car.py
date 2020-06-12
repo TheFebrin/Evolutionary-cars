@@ -77,7 +77,7 @@ class Car:
         if TRACK_MAP[car_position[1], car_position[0]]:  # EVALUATE CAR
             self.dead = True
             nc = checkpoints[self.next_checkpoint]
-            d = np.sqrt((self.x - nc[0]) ** 2 + (self.y - nc[1]) ** 2)
+            d = ((self.x - nc[0]) ** 2 + (self.y - nc[1]) ** 2)  # no sqrt
             self.objective_value -= d
             return
 

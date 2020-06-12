@@ -21,8 +21,7 @@ CHECKPOINT_AWARD = {
 
 }
 
-BEST_CARS = json.load(open('cars/track1_best_cars.json', encoding='utf-8'))
-BEST_CARS = {float(k): v for k, v in BEST_CARS.items()}
+BEST_CARS = {}
 N_BEST_CARS = 5
 actual_best = 0
 
@@ -110,10 +109,16 @@ def draw_objective_values(win, model, draw=False):
     win.blit(objective_values_plot, dest=(700, 350))
 
 
-def load_best_cars(model, cars_list):
+def load_best_cars(model, cars_list, s):
+    global BEST_CARS
+    path = f'cars/track1_best_cars_{s}sensors.json'
+    BEST_CARS = json.load(open(path, encoding='utf-8'))
+    BEST_CARS = {float(k): v for k, v in BEST_CARS.items()}
     for i, t in enumerate(BEST_CARS.items()):
-        cars_list[i].genotype = np.array(t[1])
-        cars_list[i].objective_value = t[0]
+        if i >= len(cars_list):
+            break
+        # cars_list[i].genotype = np.array(t[1])
+        # cars_list[i].objective_value = t[0]
         model.population[i] = np.array(t[1])
 
 
@@ -146,12 +151,11 @@ def update_cars_population(genetic_model, cars_list, win):
     # print(f'Objective values gen {n_gen - 1}:\n{objective_values}\n')
     genetic_model.cost = objective_values
     new_genotypes, ids = genetic_model.select_new_population()
-    ids = set(ids)
-    print(f'Best cars: {ids}')
+
     for i, c in enumerate(cars_list):
         sprite_path = 'images/cars/car.png'
-        if c.id in ids:
-            sprite_path = 'images/cars/car2.png'
+        # if c.id in ids:
+        #     sprite_path = 'images/cars/car2.png'
 
         BEST_CARS[c.objective_value] = c.genotype.tolist()
 
@@ -176,6 +180,11 @@ TODO:
 6. krzyzowanie sieci
 7. wykres kiedy skrzyzowane sieci daly cos lepszego
 8. track 3 to test track
+
+Crossovers: (choose as param)
+- random swap across genotype
+-  new individual= father1 + uniform_01_random*(father2-father1)
+- (choose to ramdom numbers A, B, then new individual is father1[1:A] concatenate with father2[A+1,B] concatenate with father1[B+1:end]
 '''
 
 if __name__ == '__main__':
@@ -197,8 +206,8 @@ if __name__ == '__main__':
     gen = font.render('Generation: 1', True, (0, 0, 255))
     top = font.render('Hall of fame (#laps):', True, (0, 0, 255))
 
-    n_cars = 20
-    n_sensors = 5
+    n_cars = 10
+    n_sensors = 7
     cars_list = [car.Car(
         id=i,
         x=TRACKS_PARAMS[track]['x'],
@@ -218,7 +227,7 @@ if __name__ == '__main__':
     '''
     Top cars into population
     '''
-    load_best_cars(genetic_model, cars_list)
+    load_best_cars(genetic_model, cars_list, n_sensors)
 
     running = True
     n_gen = 0
@@ -232,7 +241,7 @@ if __name__ == '__main__':
         if keys[pygame.K_SPACE]:  # SPACE skips to next generation
             for c in cars_list:
                 nc = CHECKPOINT_AWARD[track][c.next_checkpoint]
-                c.objective_value -= np.sqrt(
+                c.objective_value -= (  # no sqrt
                     (c.x - nc[0]) ** 2 + (c.y - nc[1]) ** 2
                 )
                 c.dead = True
@@ -266,7 +275,8 @@ if __name__ == '__main__':
             while len(BEST_CARS) > N_BEST_CARS:
                 BEST_CARS.pop(min(BEST_CARS))
 
-            with open('cars/track1_best_cars.json', 'w') as outfile:
+            out = f'cars/track1_best_cars_{n_sensors}sensors.json'
+            with open(out, 'w') as outfile:
                 json.dump(BEST_CARS, outfile, ensure_ascii=False)
 
         pygame.display.update()

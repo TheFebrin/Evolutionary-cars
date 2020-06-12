@@ -8,8 +8,10 @@ class Network(nn.Module):
         super(Network, self).__init__()
         self.layers = nn.Sequential(
             nn.Linear(in_dim, h1),
+            # nn.BatchNorm1d(num_features=h1),
             nn.Tanh(),
             nn.Linear(h1, h2),
+            # nn.BatchNorm1d(num_features=h2),
             nn.Tanh(),
             nn.Linear(h2, out_dim),
             nn.Tanh(),

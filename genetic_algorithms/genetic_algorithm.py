@@ -12,8 +12,8 @@ class GA:
         n_sensors,
         population_size,
         chromosome_len,
-        K=0.6, tau0=None, tau1=None,
-        n_samples=100000, n_epochs=300, l_rate=0.3
+        K=0.9, tau0=None, tau1=None,
+        n_samples=10000, n_epochs=100, l_rate=0.1
     ):
         '''
         Args:
@@ -40,7 +40,7 @@ class GA:
             self.tau1 = K / np.sqrt(2 * self.d)
 
         self.population = np.random.uniform(0, 1, size=(self.population_size, self.d))
-        self.sigmas = np.random.uniform(0, 0.01, size=(self.population_size, self.d))
+        self.sigmas = np.random.uniform(0, 0.05, size=(self.population_size, self.d))
 
         self.cost = np.ones(self.population_size)
         self.cost_history = []
@@ -117,9 +117,17 @@ class GA:
             out_dim=2
         )
 
-        x_shape = (self.n_samples, self.n_sensors + 2)
-        X_train1 = torch.Tensor(np.random.uniform(0, 2000, size=x_shape))
-        X_train2 = torch.Tensor(np.random.uniform(0, 2000, size=x_shape))
+        X_train1 = np.hstack((
+            np.random.uniform(0, 800, size=(self.n_samples, self.n_sensors)),
+            np.random.uniform(0, 10, size=(self.n_samples, 1)),    # velocity
+            np.random.uniform(-90, 90, size=(self.n_samples, 1)),  # angle
+        ))
+        X_train2 = np.hstack((
+            np.random.uniform(0, 800, size=(self.n_samples, self.n_sensors)),
+            np.random.uniform(0, 10, size=(self.n_samples, 1)),    # velocity
+            np.random.uniform(-90, 90, size=(self.n_samples, 1)),  # angle
+        ))
+        X_train1, X_train2 = torch.Tensor(X_train1), torch.Tensor(X_train2)
 
         y_train1 = net1(X_train1).detach().numpy()
         y_train2 = net1(X_train2).detach().numpy()
@@ -132,7 +140,7 @@ class GA:
 
         def loss_fun(x, x_hat):
             loss = torch.sum((x - x_hat) ** 2)
-            return loss
+            return loss / x.size(0)
 
         child_net.train()
         for i in range(self.n_epochs):
@@ -145,6 +153,8 @@ class GA:
             # print(f'Step: {i + 1} / {self.n_epochs} | Loss: {loss}')
         child_net.eval()
 
+        # print(f'Step: {i + 1} / {self.n_epochs} | Loss: {loss}')
+
         all_params = []
         with torch.no_grad():
             for name, p in child_net.named_parameters():
@@ -152,41 +162,74 @@ class GA:
 
         return np.array(all_params)
 
-    def mutation(self, parents, sigmas):
-        X = parents
-        Sigmas = sigmas
+    def crossover2(self, parent1, parent2):
+        child1, child2 = [], []
+        for i in range(len(parent1)):
+            coin_toss = np.random.randint(0, 2)
+            if coin_toss % 2 == 0:
+                child1.append(parent1[i])
+                child2.append(parent2[i])
+            else:
+                child1.append(parent2[i])
+                child2.append(parent1[i])
+        return child1, child2
+
+    def mutation(self):
+        X = self.population
+        Sigmas = self.sigmas
 
         E = np.random.normal(0, self.tau1, size=Sigmas.shape)
         eps_o = np.random.normal(0, self.tau0)
         Sigmas *= np.exp(E + eps_o)
 
-        return X + np.random.normal(0, 1, size=Sigmas.shape) * Sigmas, Sigmas
+        self.population = X + np.random.normal(0, 1, size=Sigmas.shape) * Sigmas
+        self.sigmas = Sigmas
+
+    def mutation2(self):
+        self.population += np.random.normal(0, 0.1, size=self.population.shape)
 
     def select_new_population(self):
         ids = self.parents_selection()
         parents = self.population[ids]
-        parent_sigmas = self.sigmas[ids]
+        # parent_sigmas = self.sigmas[ids]
 
         assert(len(self.population) == len(parents) == self.population_size)
 
-        children = []
+        children, children_sigmas = [], []
         desc = 'Creating offspring...'
-        for i in tqdm(range(self.population_size), position=0, desc=desc):
+        for i in tqdm(range(self.population_size // 2), position=0, desc=desc):
             parents_ids = random.sample(range(len(parents)), 2)
-            child = self.crossover(
+
+            # Neural networks crossover
+            # child = self.crossover(
+            #     parents[parents_ids[0]],
+            #     parents[parents_ids[1]]
+            # )
+            # children.append(child)
+            # child_sigmas = (
+            #     parent_sigmas[parents_ids[0]] + parent_sigmas[parents_ids[1]]
+            # ) / 2
+            # children_sigmas.append(child_sigmas)
+
+            # Simple toin coss over genotypes
+            siblings = self.crossover2(
                 parents[parents_ids[0]],
                 parents[parents_ids[1]]
             )
-            children.append(child)
+            children.append(siblings[0])
+            children.append(siblings[1])
 
         children = np.array(children)
         self.population = children
+        self.sigmas = np.array(children_sigmas)
 
-        # self.population, self.sigmas = self.mutation(children, children_sigmas)
+        # self.mutation()
+        self.mutation2()
 
+        # self.population_history.append(self.population)
         self.cost_history.append(
-            (self.cost.min(), self.cost.mean(), self.cost.max()))
-        self.population_history.append(self.population)
+            (self.cost.min(), self.cost.mean(), self.cost.max())
+        )
         self.sigmas_history.append(
             self.sigmas.mean(axis=0)  # mean of sigmas in population
         )
@@ -202,10 +245,9 @@ class GA:
         self.cost_history = np.array(self.cost_history)
         plt.figure(figsize=(15, 5))
         plt.plot(self.cost_history)
-        mini_id = self.cost_history[:, 0].argmax()
-        mini_val = self.cost_history[:, 0][mini_id]
-        desc = 'ES(µ + λ)'
-        plt.title(f'{desc} --> POPULATION SIZE: {self.population_size}  |  CHROMOSOME LEN: {self.d}  |  BEST_ITER: {mini_id}  |  MIN: {mini_val :.3f}')
+        maxi_id = self.cost_history[:, 0].argmax()
+        maxi_val = self.cost_history[:, 0][maxi_id]
+        plt.title(f'POPULATION SIZE: {self.population_size}  |  CHROMOSOME LEN: {self.d}  |  BEST_ITER: {maxi_id}  |  MAX: {maxi_val :.3f}')
         plt.legend(['Min', 'Mean', 'Max'], loc='upper right')
         plt.savefig('plots/cost.png')
 
