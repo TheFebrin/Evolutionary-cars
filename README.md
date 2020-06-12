@@ -48,7 +48,7 @@ As it's quite hard to define an objective function I created checkpoints.
 
 
 ## Genetic algorithm
-1. Parent Selection
+1. <h4>Parent Selection</h4>
 
 	From the current population, we choose *parents* such that the probability of choosing a parent *p* is equal to its fitness value *f(x)*, where:
 
@@ -56,21 +56,33 @@ As it's quite hard to define an objective function I created checkpoints.
 
 	 *F(x) is an objective function value*.
 
-2. Crossover
+2. <h4>Crossovers</h4>
 
 	Parents chosen in the previous step pair up to produce offspring.
-	Each pair produces one child.
-	We draw *n* such pairs, where *n* is a population size.
 
-	We have two parent neural networks *N1* and *N2*. The goal is to produce an offspring network *N3*.
-	We do as follows:
-	1. Generate 2k random genotypes.
-	2. Feed k samples to each parent network.
-	3. We obtain 2k outputs and treat it like a training dataset.
-	3. We train N3 using this data.
+	* <h6>Simple crossover</h6>
+
+		Each pair produces two children.
+		We draw *n* such pairs, where *n* is a population size <br> and do as follows:
+
+		1. Iterate through genotype.
+		2. With *50%* probability, *child_1* will get a gene from *parent_1*, then *child_2* gets a gene from *parent_2*.
+		3. Otherwise *child_1* will get a gene from *parent_2* and *child_2* from *parent_1*.
+
+	* <h6>Neural networks crossover</h6>
+
+		Each pair produces one child.
+		We draw *n* such pairs, where *n* is a population size.
+
+		We have two parent neural networks *N1* and *N2*. The goal is to produce an offspring network *N3*.
+		We do as follows:
+		1. Generate 2k random genotypes.
+		2. Feed k samples to each parent network.
+		3. We obtain 2k outputs and treat it like a training dataset.
+		3. We train N3 using this data.
 
 
-3. Mutation
+3. <h4>Mutations</h4>
 
 TODO
 
