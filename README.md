@@ -89,7 +89,10 @@ TODO
 
 ## Screenshots
 * Sensor
-	![Example screenshot](/videos/scanners.gif)
+	![GIF](/videos/scanners.gif)
+
+* Example
+	![GIF](/videos/v1.gif)
 
 * TODO
 
