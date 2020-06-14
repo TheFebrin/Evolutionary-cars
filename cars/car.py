@@ -85,7 +85,7 @@ class Car:
             # print(f'CAR: {self.id} REACHED {self.next_checkpoint}')
             self.objective_value += CHECKPOINT_AWARD
             self.next_checkpoint += 1
-            self.next_checkpoint %= 4
+            self.next_checkpoint %= len(CHECKPOINTS_MAPS)
 
         alpha = (self.angle % 360) * np.pi / 180
         angle_v = 180 / (self.n_sensors - 1) * np.pi / 180

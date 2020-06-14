@@ -12,18 +12,23 @@ matplotlib.use("Agg")
 
 TRACKS_PARAMS = {
     1: {'x': 570, 'y': 360, 'angle': 0},
-    2: {},
+    2: {'x': 430, 'y': 840, 'angle': -90},
     3: {}
 }
 
-CHECKPOINT_AWARD = {
-    1: [(530, 600), (150, 600), (150, 160), (530, 160)]
+CHECKPOINTS_POSITIONS = {
+    1: [(530, 600), (150, 600), (150, 160), (530, 160)],
+    2: [(120, 750), (75, 225), (290, 70), (500, 220), (610, 450), (725, 630), (660, 825)],
+}
 
+DRAW_POSITIONS = {
+    1: {'plot': (700, 350)},
+    2: {'plot': (850, 400)}
 }
 
 BEST_CARS = {}
-N_BEST_CARS = 20
-actual_best = 0
+N_BEST_CARS: int = 20
+actual_best: int = 0
 
 
 def load_racing_tracks(k):
@@ -47,16 +52,21 @@ def load_racing_tracks(k):
 
 def load_checkpoints(k):
     if k == 1:
-        c0 = Image.open('images/track1/checkpoint0.jpg').convert('1')
-        c1 = Image.open('images/track1/checkpoint1.jpg').convert('1')
-        c2 = Image.open('images/track1/checkpoint2.jpg').convert('1')
-        c3 = Image.open('images/track1/checkpoint3.jpg').convert('1')
+        checkpoints = [
+            Image.open(f'images/track1/checkpoint{i}.jpg').convert('1')
+            for i in range(4)
+        ]
+    if k == 2:
+        checkpoints = [
+            Image.open(f'images/track2/checkpoint{i}.jpg').convert('1')
+            for i in range(7)
+        ]
 
-        return list(map(np.array, [c0, c1, c2, c3]))
+    return list(map(np.array, checkpoints))
 
 
 def draw_checkpoints(win):
-    for i, t in enumerate(CHECKPOINT_AWARD[track]):
+    for i, t in enumerate(CHECKPOINTS_POSITIONS[track]):
         x, y = t
         pygame.draw.circle(win, (255, 255, 0), (x, y), 8)
         id = font.render(f'{i}', True, (255, 255, 0))
@@ -75,7 +85,7 @@ def draw_info(win):
     space_text = font.render(space, True, (0, 255, 100))
     win.blit(space_text, dest=(700, 150))
 
-    L = '(L) - load hall of fame'
+    L = '(L) - load best cars'
     l_text = font.render(L, True, (0, 255, 100))
     win.blit(l_text, dest=(700, 200))
 
@@ -93,7 +103,7 @@ def draw_objective_values(win, model, draw=False):
         return
 
     if draw:
-        win.blit(objective_values_plot, dest=(700, 350))
+        win.blit(objective_values_plot, dest=DRAW_POSITIONS[track]['plot'])
         return
 
     objective_values_plot = np.array(model.cost_history) / car.CHECKPOINT_AWARD
@@ -110,22 +120,24 @@ def draw_objective_values(win, model, draw=False):
     size = canvas.get_width_height()
     objective_values_plot = pygame.image.fromstring(raw_data, size, "RGB")
 
-    win.blit(objective_values_plot, dest=(700, 350))
+    win.blit(objective_values_plot, dest=DRAW_POSITIONS[track]['plot'])
 
 
-def load_best_cars(model, cars_list, s):
+def load_best_cars(model, cars_list, s, track=1):
     global BEST_CARS
-    path = f'cars/track1_best_cars_{s}sensors.json'
+    path = f'cars/track{track}_best_cars_{s}sensors.json'
     BEST_CARS = json.load(open(path, encoding='utf-8'))
     BEST_CARS = {float(k): v for k, v in BEST_CARS.items()}
     for i, t in enumerate(BEST_CARS.items()):
         if i >= len(cars_list):
             break
         model.population[i] = np.array(t[1])
+        cars_list[i].genotype = np.array(t[1])
+        # cars_list[i].objective_value = t[0]
 
 
-def update_fps(win, clock):
-    fps = f'FPS: {int(clock.get_fps())}'
+def update_fps(win, clock, time_start):
+    fps = f'FPS: {int(clock.get_fps())}  |  Time: {time.time() - time_start:.2f}'
     fps_text = font.render(fps, 1, pygame.Color("blue"))
     win.blit(fps_text, dest=(600, 50))
 
@@ -154,7 +166,7 @@ def update_cars_population(genetic_model, cars_list, win):
     print(f'Best objective value: {actual_best}')
     # print(f'Objective values gen {n_gen - 1}:\n{objective_values}\n')
     genetic_model.cost = objective_values
-    new_genotypes, ids = genetic_model.select_new_population()
+    new_genotypes = genetic_model.select_new_population()
 
     for i, c in enumerate(cars_list):
         sprite_path = 'images/cars/car.png'
@@ -167,9 +179,9 @@ def update_cars_population(genetic_model, cars_list, win):
         c.sprite = pygame.transform.scale(c.sprite, c.sprite_size)
         c.x = TRACKS_PARAMS[track]['x']
         c.y = TRACKS_PARAMS[track]['y']
+        c.angle = TRACKS_PARAMS[track]['angle']
         c.dead = False
         c.velocity = 0
-        c.angle = 0
         c.time_start = time.time()
         c.genotype = new_genotypes[i]
         c.next_checkpoint = 0
@@ -179,63 +191,85 @@ def update_cars_population(genetic_model, cars_list, win):
 '''
 TODO:
 3. ES desc
-4. save weights
-5. top cars, best weights
 6. krzyzowanie sieci
 7. wykres kiedy skrzyzowane sieci daly cos lepszego
 8. track 3 to test track
 
 Crossovers: (choose as param)
-- random swap across genotype
--  new individual= father1 + uniform_01_random*(father2-father1)
-- (choose to ramdom numbers A, B, then new individual is father1[1:A] concatenate with father2[A+1,B] concatenate with father1[B+1:end]
+- new individual= father1 + uniform_01_random*(father2-father1)
+- take K layers from P1 and (N-K) layers from P2
 '''
 
 if __name__ == '__main__':
     pygame.init()
     pygame.display.set_caption("Evolutionary cars")
 
-    # track = int(input('Which track?: (1 / 2 / 3)'))
-    track = 1
+    '''
+    Print information and input track number
+    '''
+    print('\n' + '-' * 50 + '\n')
+    print('Track 1: Easy\nTrack 2: Medium\nTrack 3: Hard')
+    print('(Tracks 1-2 are for training, Track 3 is for testing.)')
+    print('\n' + '-' * 50 + '\n')
+    track = int(input('Which track?: (1 / 2 / 3): '))
+
+    '''
+    Load track map and checkpoints
+    '''
     background, TRACK_MAP = load_racing_tracks(k=track)
     CHECKPOINTS_MAPS = load_checkpoints(k=track)
     window_height, window_width = TRACK_MAP.shape
 
     print(f'WINDOW SIZE: {window_width} x {window_height}')
 
+    '''
+    Set up pygame entities
+    '''
     win = pygame.display.set_mode((window_width, window_height))
     clock = pygame.time.Clock()
     font = pygame.font.Font('font/font.ttf', 40)
-
     gen = font.render('Generation: 1', True, (0, 0, 255))
-    top = font.render('Hall of fame:', True, (0, 0, 255))
+    top = font.render('Most checkpoints:', True, (0, 0, 255))
 
+    '''
+    Initialize cars population
+    '''
     n_cars = 30
     n_sensors = 7
     cars_list = [car.Car(
         id=i,
         x=TRACKS_PARAMS[track]['x'],
         y=TRACKS_PARAMS[track]['y'],
+        angle=TRACKS_PARAMS[track]['angle'],
         n_sensors=n_sensors,
         sprite_path='images/cars/car.png')
         for i in range(n_cars)
     ]
 
+    '''
+    Initialize genetic model
+    '''
+    EVOLVE = True  # Population is freezed if False
     n_parameters = cars_list[0].n_parameters
     genetic_model = genetic_algorithm.GA(
         n_sensors=n_sensors,
         population_size=n_cars,
-        chromosome_len=n_parameters, K=1
+        chromosome_len=n_parameters, K=1,
+        evolve=EVOLVE
     )
 
     '''
-    Top cars into population
+    Load top cars from *track* into population
     '''
-    load_best_cars(genetic_model, cars_list, n_sensors)
+    load_best_cars(genetic_model, cars_list, n_sensors, track=track)
 
+    '''
+     ------ MAIN LOOP --------------  MAIN LOOP  -----------
+    '''
     running = True
     n_gen = 0
-    while running:  # ------ MAIN LOOP --------------  MAIN LOOP  -----------
+    time_start = time.time()
+    while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -244,20 +278,20 @@ if __name__ == '__main__':
         keys = pygame.key.get_pressed()
         if keys[pygame.K_SPACE]:  # SPACE skips to next generation
             for c in cars_list:
-                nc = CHECKPOINT_AWARD[track][c.next_checkpoint]
+                nc = CHECKPOINTS_POSITIONS[track][c.next_checkpoint]
                 c.objective_value -= (  # no sqrt
                     (c.x - nc[0]) ** 2 + (c.y - nc[1]) ** 2
                 )
                 c.dead = True
         if keys[pygame.K_l]:  # l loads hall of fame cars
-            load_best_cars(genetic_model, cars_list, n_sensors)
+            load_best_cars(genetic_model, cars_list, n_sensors, track=track)
             for c in cars_list:
                 c.dead = True
 
         win.blit(background, dest=(0, 0))
 
         for c in cars_list:
-            c.update_position(TRACK_MAP, CHECKPOINTS_MAPS, CHECKPOINT_AWARD[track])
+            c.update_position(TRACK_MAP, CHECKPOINTS_MAPS, CHECKPOINTS_POSITIONS[track])
             c.predict_move()
             c.draw(win)
 
@@ -269,7 +303,7 @@ if __name__ == '__main__':
         draw_checkpoints(win)
         draw_info(win)
         draw_objective_values(win, genetic_model, draw=True)
-        update_fps(win, clock)
+        update_fps(win, clock, time_start)
 
         dead_cars = sum([c.dead for c in cars_list])
         if dead_cars == n_cars:
@@ -279,11 +313,11 @@ if __name__ == '__main__':
             gen = font.render(f'Generation: {n_gen}', True, (0, 0, 255))
             update_cars_population(genetic_model, cars_list, win)
             draw_objective_values(win, genetic_model, draw=False)
-
+            time_start = time.time()
             while len(BEST_CARS) > N_BEST_CARS:
                 BEST_CARS.pop(min(BEST_CARS))
 
-            out = f'cars/track1_best_cars_{n_sensors}sensors.json'
+            out = f'cars/track{track}_best_cars_{n_sensors}sensors.json'
             with open(out, 'w') as outfile:
                 json.dump(BEST_CARS, outfile, ensure_ascii=False)
 

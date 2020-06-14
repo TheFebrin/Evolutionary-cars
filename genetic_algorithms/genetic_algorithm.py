@@ -13,7 +13,8 @@ class GA:
         population_size,
         chromosome_len,
         K=0.9, tau0=None, tau1=None,
-        n_samples=10000, n_epochs=100, l_rate=0.1
+        n_samples=10000, n_epochs=100, l_rate=0.1,
+        evolve=True
     ):
         '''
         Args:
@@ -32,6 +33,7 @@ class GA:
         self.n_samples = n_samples
         self.n_epochs = n_epochs
         self.l_rate = l_rate
+        self.evolve = evolve
 
         if self.tau0 is None:
             self.tau0 = K / np.sqrt(2 * np.sqrt(self.d))
@@ -189,6 +191,9 @@ class GA:
         self.population += np.random.normal(0, 0.1, size=self.population.shape)
 
     def select_new_population(self):
+        if not self.evolve:
+            return self.population
+
         ids = self.parents_selection()
         parents = self.population[ids]
         # parent_sigmas = self.sigmas[ids]
@@ -239,7 +244,7 @@ class GA:
             self.population[best_indi]  # sigmas of best individual
         )
 
-        return self.population, set(ids)
+        return self.population
 
     def plot_cost(self):
         self.cost_history = np.array(self.cost_history)
