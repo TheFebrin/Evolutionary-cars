@@ -92,11 +92,17 @@ TODO
 
 	![GIF](/videos/scanners.gif)
 
-* Example
+* Track 1
 
 	![GIF](/videos/v1.gif)
 
-* TODO
+* Track2
+
+	![GIF](/videos/v2.gif)
+
+* Track 3
+
+	TODO
 
 ## Technologies
 * Python - version 3.7.3
