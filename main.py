@@ -156,21 +156,27 @@ def draw_hall_of_fame(win):
             break
 
 
-def update_cars_population(genetic_model, cars_list, win):
+def update_cars_population(genetic_model, cars_list, win, n_gen):
     global actual_best
     objective_values = np.array(
         [c.objective_value for c in cars_list],
         dtype=np.float64
     )
-    training_data = np.array(
-        c.training_data for c in cars_list
-    )
+    training_data = np.array([
+        np.array(c.training_data) for c in cars_list
+    ])
+
+    print(f'Learning samples: {training_data[0].shape}')
+
     actual_best = objective_values.max()
     print(f'Best objective value: {actual_best}')
 
     genetic_model.cost = objective_values
     genetic_model.training_data = training_data
-    new_genotypes = genetic_model.select_new_population()
+    new_genotypes = genetic_model.select_new_population(
+        n_gen,
+        crossover=CROSSOVER_TYPE
+    )
 
     for i, c in enumerate(cars_list):
         sprite_path = 'images/cars/car.png'
@@ -240,7 +246,7 @@ if __name__ == '__main__':
     '''
     Initialize cars population
     '''
-    n_cars = 6
+    n_cars = 20
     assert(n_cars % 2 == 0)  # for parent selection sake
     n_sensors = 7
     cars_list = [car.Car(
@@ -256,7 +262,9 @@ if __name__ == '__main__':
     '''
     Initialize genetic model
     '''
-    EVOLVE = False  # Population is freezed if False
+    EVOLVE = True  # Population is freezed if False
+    CROSSOVER_TYPE = 1  # neural network crossover
+    # CROSSOVER_TYPE = 2  # random crossover
     n_parameters = cars_list[0].n_parameters
     genetic_model = genetic_algorithm.GA(
         n_sensors=n_sensors,
@@ -268,7 +276,9 @@ if __name__ == '__main__':
     '''
     Load top cars from *track* into population
     '''
-    load_best_cars(genetic_model, cars_list, n_sensors, track=track)
+    LOAD_BEST_CARS = False
+    if LOAD_BEST_CARS:
+        load_best_cars(genetic_model, cars_list, n_sensors, track=track)
 
     '''
      ------ MAIN LOOP --------------  MAIN LOOP  -----------
@@ -320,7 +330,7 @@ if __name__ == '__main__':
             gen = font.render(f'Generation: {n_gen}', True, (0, 0, 255))
             '''
             #  Saving sample measurements that cars can see
-            out = f'cars/training _data.npy'
+            out = f'cars/training _data_track1.npy'
             all_training_data = []
             for c in cars_list:
                 all_training_data += c.training_data
@@ -328,15 +338,16 @@ if __name__ == '__main__':
             with open(out, 'w') as outfile:
                 np.save(out, all_training_data)
             '''
-            update_cars_population(genetic_model, cars_list, win)
+            update_cars_population(genetic_model, cars_list, win, n_gen)
             draw_objective_values(win, genetic_model, draw=False)
             time_start = time.time()
             while len(BEST_CARS) > N_BEST_CARS:
                 BEST_CARS.pop(min(BEST_CARS))
 
-            out = f'cars/track{track}_best_cars_{n_sensors}sensors.json'
-            with open(out, 'w') as outfile:
-                json.dump(BEST_CARS, outfile, ensure_ascii=False)
+            if LOAD_BEST_CARS:
+                out = f'cars/track{track}_best_cars_{n_sensors}sensors.json'
+                with open(out, 'w') as outfile:
+                    json.dump(BEST_CARS, outfile, ensure_ascii=False)
 
         pygame.display.update()
         clock.tick(60)

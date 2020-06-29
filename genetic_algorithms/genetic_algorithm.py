@@ -13,7 +13,7 @@ class GA:
         population_size,
         chromosome_len,
         K=0.9, tau0=None, tau1=None,
-        n_samples=1000, n_epochs=100, l_rate=0.1,
+        n_samples=1000, n_epochs=200, l_rate=0.01,
         evolve=True
     ):
         '''
@@ -22,6 +22,9 @@ class GA:
                 Desc
             population_size : int
                 ...
+
+            l_rate : float
+                Best learning rate I found
 
         '''
         self.n_sensors = n_sensors
@@ -79,7 +82,10 @@ class GA:
         )
         return ids
 
-    def crossover1(self, parent1, parent2):
+    def crossover1(self, parent1, parent2, parent1_id, parent2_id):
+        '''
+        # Creating two parent neural networks
+
         net1 = nn.Network(
             in_dim=self.n_sensors + 2,  # n_sensors + act_velocity + act angle
             h1=4,
@@ -124,7 +130,7 @@ class GA:
                     raise ValueError('Unknown parameter name "%s"' % name)
                 idx += w_size
 
-        # generate random data and learn a child net
+        '''
         child_net = nn.Network(
             in_dim=self.n_sensors + 2,  # n_sensors + act_velocity + act angle
             h1=4,
@@ -132,20 +138,33 @@ class GA:
             out_dim=2
         )
 
-        X_train1 = np.hstack((
-            np.random.uniform(0, 800, size=(self.n_samples, self.n_sensors)),
-            np.random.uniform(0, 10, size=(self.n_samples, 1)),    # velocity
-            np.random.uniform(-90, 90, size=(self.n_samples, 1)),  # angle
-        ))
-        X_train2 = np.hstack((
-            np.random.uniform(0, 800, size=(self.n_samples, self.n_sensors)),
-            np.random.uniform(0, 10, size=(self.n_samples, 1)),    # velocity
-            np.random.uniform(-90, 90, size=(self.n_samples, 1)),  # angle
-        ))
+        self.n_samples = len(self.training_data)
+
+        indices1 = np.random.choice(
+            np.arange(len(self.training_data[parent1_id])),
+            self.n_samples
+        )
+        indices2 = np.random.choice(
+            np.arange(len(self.training_data[parent2_id])),
+            self.n_samples
+        )
+
+        X_train1 = np.array(self.training_data[parent1_id][indices1])[:, 0]
+        X_train2 = np.array(self.training_data[parent2_id][indices2])[:, 0]
+        X_train2 = np.concatenate(X_train2, axis=0).reshape(self.n_samples, -1)
+        X_train1 = np.concatenate(X_train1, axis=0).reshape(self.n_samples, -1)
+
         X_train1, X_train2 = torch.Tensor(X_train1), torch.Tensor(X_train2)
 
-        y_train1 = net1(X_train1).detach().numpy()
-        y_train2 = net1(X_train2).detach().numpy()
+        # In case of using parent neural nets
+        # y_train1 = net1(X_train1.float()).detach().numpy()
+        # y_train2 = net1(X_train2.float()).detach().numpy()
+
+        y_train1 = np.array(self.training_data[parent1_id][indices1])[:, 1]
+        y_train1 = np.concatenate(y_train1, axis=0).reshape(self.n_samples, -1)
+
+        y_train2 = np.array(self.training_data[parent2_id][indices2])[:, 1]
+        y_train2 = np.concatenate(y_train2, axis=0).reshape(self.n_samples, -1)
 
         X_train = torch.Tensor(np.vstack((X_train1, X_train2)))
         y_train = torch.Tensor(np.vstack((y_train1, y_train2)))
@@ -168,7 +187,10 @@ class GA:
             # print(f'Step: {i + 1} / {self.n_epochs} | Loss: {loss}')
         child_net.eval()
 
-        # print(f'Step: {i + 1} / {self.n_epochs} | Loss: {loss}')
+        # child_preds = child_net(X_train.float()).detach().numpy()
+        # error = np.sum((child_preds - y_train.numpy()) ** 2) / len(y_train)
+        # print(f'\nError: {error}\n')
+
         all_params = []
         with torch.no_grad():
             for name, p in child_net.named_parameters():
@@ -202,18 +224,19 @@ class GA:
     def mutation2(self):
         self.population += np.random.normal(0, 0.1, size=self.population.shape)
 
-    def select_new_population(self, crossover=2):
+    def select_new_population(self, n_gen, crossover=2):
         '''
         Args:
             crossover : int
                 1: crossover1, (learning third neural network)
                 2: crossover2, children get random genes from parent
         '''
-        if not self.evolve:
+        if not self.evolve or n_gen == 1:
             return self.population
 
         ids = self.parents_selection()
         parents = self.population[ids]
+        self.training_data = self.training_data[ids]
         # parent_sigmas = self.sigmas[ids]
 
         assert(len(self.population) == len(parents) == self.population_size)
@@ -229,7 +252,9 @@ class GA:
             if crossover == 1:
                 child = self.crossover1(
                     parents[parents_ids[0]],
-                    parents[parents_ids[1]]
+                    parents[parents_ids[1]],
+                    parents_ids[0],
+                    parents_ids[1]
                 )
                 children.append(child)
                 # child_sigmas = (
@@ -250,8 +275,8 @@ class GA:
         self.population = children
         self.sigmas = np.array(children_sigmas)
 
-        # self.mutation()
-        self.mutation2()
+        # self.mutation() # ES mutation
+        self.mutation2()  # adding noise
 
         # self.population_history.append(self.population)
         self.cost_history.append(
