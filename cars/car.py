@@ -30,6 +30,7 @@ class Car:
 
         self.sensors_endpoints = [(x, y)] * n_sensors  # 5 car sensors
         self.sensors_readings = [0] * n_sensors
+        self.training_data = []
 
         self.network = nn.Network(
             in_dim=n_sensors + 2,  # n_sensors + act_velocity + act angle
@@ -68,6 +69,10 @@ class Car:
         preds = self.network(X.float()).detach().numpy()
         self.velocity += preds[0]
         self.angle += preds[1]
+        self.training_data.append((
+            self.sensors_readings + [self.velocity, self.angle],
+            preds
+        ))
 
     def update_position(self, TRACK_MAP, CHECKPOINTS_MAPS, checkpoints):
         if self.dead:

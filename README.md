@@ -76,7 +76,7 @@ As it's quite hard to define an objective function I created checkpoints.
 
 		We have two parent neural networks *N1* and *N2*. The goal is to produce an offspring network *N3*.
 		We do as follows:
-		1. Generate 2k random genotypes.
+		1. Generate 2k training data similar to the measurements that actual parents have seen.
 		2. Feed k samples to each parent network.
 		3. We obtain 2k outputs and treat it like a training dataset.
 		3. We train N3 using this data.

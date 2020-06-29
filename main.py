@@ -162,10 +162,14 @@ def update_cars_population(genetic_model, cars_list, win):
         [c.objective_value for c in cars_list],
         dtype=np.float64
     )
+    training_data = np.array(
+        c.training_data for c in cars_list
+    )
     actual_best = objective_values.max()
     print(f'Best objective value: {actual_best}')
-    # print(f'Objective values gen {n_gen - 1}:\n{objective_values}\n')
+
     genetic_model.cost = objective_values
+    genetic_model.training_data = training_data
     new_genotypes = genetic_model.select_new_population()
 
     for i, c in enumerate(cars_list):
@@ -186,6 +190,7 @@ def update_cars_population(genetic_model, cars_list, win):
         c.genotype = new_genotypes[i]
         c.next_checkpoint = 0
         c.objective_value = 1
+        c.training_data = []
 
 
 '''
@@ -194,6 +199,7 @@ TODO:
 6. krzyzowanie sieci
 7. wykres kiedy skrzyzowane sieci daly cos lepszego
 8. track 3 to test track
+- Training data file desc
 
 Crossovers: (choose as param)
 - new individual= father1 + uniform_01_random*(father2-father1)
@@ -234,7 +240,8 @@ if __name__ == '__main__':
     '''
     Initialize cars population
     '''
-    n_cars = 30
+    n_cars = 6
+    assert(n_cars % 2 == 0)  # for parent selection sake
     n_sensors = 7
     cars_list = [car.Car(
         id=i,
@@ -249,7 +256,7 @@ if __name__ == '__main__':
     '''
     Initialize genetic model
     '''
-    EVOLVE = True  # Population is freezed if False
+    EVOLVE = False  # Population is freezed if False
     n_parameters = cars_list[0].n_parameters
     genetic_model = genetic_algorithm.GA(
         n_sensors=n_sensors,
@@ -276,7 +283,7 @@ if __name__ == '__main__':
                 break
 
         keys = pygame.key.get_pressed()
-        if keys[pygame.K_SPACE]:  # SPACE skips to next generation
+        if keys[pygame.K_SPACE] or time.time() - time_start >= 60:  # SPACE skips to next generation
             for c in cars_list:
                 nc = CHECKPOINTS_POSITIONS[track][c.next_checkpoint]
                 c.objective_value -= (  # no sqrt
@@ -311,6 +318,16 @@ if __name__ == '__main__':
             n_gen += 1
             print(f'Generation: {n_gen}')
             gen = font.render(f'Generation: {n_gen}', True, (0, 0, 255))
+            '''
+            #  Saving sample measurements that cars can see
+            out = f'cars/training _data.npy'
+            all_training_data = []
+            for c in cars_list:
+                all_training_data += c.training_data
+            all_training_data = np.array(all_training_data)
+            with open(out, 'w') as outfile:
+                np.save(out, all_training_data)
+            '''
             update_cars_population(genetic_model, cars_list, win)
             draw_objective_values(win, genetic_model, draw=False)
             time_start = time.time()

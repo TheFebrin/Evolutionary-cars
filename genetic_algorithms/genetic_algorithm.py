@@ -13,7 +13,7 @@ class GA:
         population_size,
         chromosome_len,
         K=0.9, tau0=None, tau1=None,
-        n_samples=10000, n_epochs=100, l_rate=0.1,
+        n_samples=1000, n_epochs=100, l_rate=0.1,
         evolve=True
     ):
         '''
@@ -41,8 +41,21 @@ class GA:
         if self.tau1 is None:
             self.tau1 = K / np.sqrt(2 * self.d)
 
-        self.population = np.random.uniform(0, 1, size=(self.population_size, self.d))
-        self.sigmas = np.random.uniform(0, 0.05, size=(self.population_size, self.d))
+        self.population = np.random.uniform(
+            low=0,
+            high=1,
+            size=(self.population_size, self.d)
+        )
+        self.sigmas = np.random.uniform(
+            low=0,
+            high=0.05,
+            size=(self.population_size, self.d)
+        )
+        self.training_data = np.random.uniform(
+            low=0,
+            high=1,
+            size=(self.population_size, self.d)
+        )
 
         self.cost = np.ones(self.population_size)
         self.cost_history = []
@@ -66,7 +79,7 @@ class GA:
         )
         return ids
 
-    def crossover(self, parent1, parent2):
+    def crossover1(self, parent1, parent2):
         net1 = nn.Network(
             in_dim=self.n_sensors + 2,  # n_sensors + act_velocity + act angle
             h1=4,
@@ -156,7 +169,6 @@ class GA:
         child_net.eval()
 
         # print(f'Step: {i + 1} / {self.n_epochs} | Loss: {loss}')
-
         all_params = []
         with torch.no_grad():
             for name, p in child_net.named_parameters():
@@ -176,7 +188,7 @@ class GA:
                 child2.append(parent1[i])
         return child1, child2
 
-    def mutation(self):
+    def mutation1(self):
         X = self.population
         Sigmas = self.sigmas
 
@@ -190,7 +202,13 @@ class GA:
     def mutation2(self):
         self.population += np.random.normal(0, 0.1, size=self.population.shape)
 
-    def select_new_population(self):
+    def select_new_population(self, crossover=2):
+        '''
+        Args:
+            crossover : int
+                1: crossover1, (learning third neural network)
+                2: crossover2, children get random genes from parent
+        '''
         if not self.evolve:
             return self.population
 
@@ -202,27 +220,31 @@ class GA:
 
         children, children_sigmas = [], []
         desc = 'Creating offspring...'
-        for i in tqdm(range(self.population_size // 2), position=0, desc=desc):
-            parents_ids = random.sample(range(len(parents)), 2)
+        r = self.population_size if crossover == 1 \
+            else self.population_size // 2
 
+        for i in tqdm(range(r), position=0, leave=True, desc=desc):
+            parents_ids = random.sample(range(len(parents)), 2)
             # Neural networks crossover
-            # child = self.crossover(
-            #     parents[parents_ids[0]],
-            #     parents[parents_ids[1]]
-            # )
-            # children.append(child)
-            # child_sigmas = (
-            #     parent_sigmas[parents_ids[0]] + parent_sigmas[parents_ids[1]]
-            # ) / 2
-            # children_sigmas.append(child_sigmas)
+            if crossover == 1:
+                child = self.crossover1(
+                    parents[parents_ids[0]],
+                    parents[parents_ids[1]]
+                )
+                children.append(child)
+                # child_sigmas = (
+                #     parent_sigmas[parents_ids[0]] + parent_sigmas[parents_ids[1]]
+                # ) / 2
+                # children_sigmas.append(child_sigmas)
 
             # Simple toin coss over genotypes
-            siblings = self.crossover2(
-                parents[parents_ids[0]],
-                parents[parents_ids[1]]
-            )
-            children.append(siblings[0])
-            children.append(siblings[1])
+            if crossover == 2:
+                siblings = self.crossover2(
+                    parents[parents_ids[0]],
+                    parents[parents_ids[1]]
+                )
+                children.append(siblings[0])
+                children.append(siblings[1])
 
         children = np.array(children)
         self.population = children
@@ -238,12 +260,10 @@ class GA:
         self.sigmas_history.append(
             self.sigmas.mean(axis=0)  # mean of sigmas in population
         )
-
         best_indi = self.cost.argmax()
         self.best_sigmas_history.append(
             self.population[best_indi]  # sigmas of best individual
         )
-
         return self.population
 
     def plot_cost(self):
