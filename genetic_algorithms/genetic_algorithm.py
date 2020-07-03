@@ -19,14 +19,30 @@ class GA:
         '''
         Args:
             n_sensors : int
-                Desc
+                Number of sensors in a car
+
             population_size : int
-                ...
+                Number of cars in the population
+
+            chromosome_len : int
+                Length of the list, which is our answer for the problem
+
+            K : int
+                Kind of learning rate parameter
+
+            n_samples : int
+                The number of samples we use while training a child neural network during NN crossover
+
+            n_epochs : int
+                The number of epochs while training a child neural network during NN crossover
 
             l_rate : float
-                Best learning rate I found
+                Learning rate while training a child neural network during NN crossover
 
+            evolve : bool
+                if False population doesn't change during the generations
         '''
+
         self.n_sensors = n_sensors
         self.population_size = population_size
         self.d = chromosome_len
@@ -139,6 +155,9 @@ class GA:
         )
 
         self.n_samples = len(self.training_data)
+
+        if len(self.training_data[parent1_id]) == 0 or len(self.training_data[parent1_id]) == 0:
+            return parent1
 
         indices1 = np.random.choice(
             np.arange(len(self.training_data[parent1_id])),
