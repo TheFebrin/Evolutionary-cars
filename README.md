@@ -23,11 +23,15 @@
 5. Car's velocity and angle are changed according to the network's output.
 
 #### Tracks:
-TODO
+
+* Track 1 - easy
+* Track 2 - hard
+* Track 3 - very hard - waiting for introduction
+
 
 #### Miscellaneous:
-1. Program saves best cars it has seen.
-TODO
+1. Program saves the best cars it has seen.
+2. Program can save all sensors measurements during the laps.
 
 
 ## Neural network
@@ -76,15 +80,23 @@ As it's quite hard to define an objective function I created checkpoints.
 
 		We have two parent neural networks *N1* and *N2*. The goal is to produce an offspring network *N3*.
 		We do as follows:
-		1. Generate 2k training data similar to the measurements that actual parents have seen.
-		2. Feed k samples to each parent network.
-		3. We obtain 2k outputs and treat it like a training dataset.
-		3. We train N3 using this data.
+		1. For each car we record the sensors measurements and car's decision at every frame. 
+		2. From each parent we draw *k* samples of those measurements and corresponding predicts.
+		3. We feed *2k* samples to the child network N3.
+		4. We hope that N3 learned something and drives not worst than it's parents.
 
 
 3. <h4>Mutations</h4>
-
-TODO
+    
+   * <h6>Simple mutation</h6>
+    
+        Add a Gaussian Noise to the network.
+        
+   * <h6>ES mutation</h6>
+    
+        Use ES(λ + μ) algorithm for mutation. 
+        This is quite powerful algorithm, 
+        which gives us a possibility to run it alone without a crossover.
 
 
 ## Screenshots
@@ -102,7 +114,7 @@ TODO
 
 * Track 3
 
-	TODO
+	![image](/images/track3/track3.jpg)
 
 ## Technologies
 * Python - version 3.7.3
@@ -111,13 +123,18 @@ TODO
 * numpy
 * pygame
 * Image
-* TODO
+* pytorch
+* json
+
 
 ## Results
-* TODO
+* Cars have no problems with learning how to deal with the first track.
+* For now they cannot finish 2nd track, because they speed up to much near the end.
+* Neural network crossover works quite well, but it is slow.
+* Simple and fast ES is the best way to go here.
 
 ## Status
-Project is: _just_started_
+Project is: _in_the_middle_
 
 ## Credits
 Created by [@TheFebrin](https://github.com/TheFebrin) <br>

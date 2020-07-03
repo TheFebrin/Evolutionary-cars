@@ -27,7 +27,7 @@ DRAW_POSITIONS = {
 }
 
 BEST_CARS = {}
-N_BEST_CARS: int = 20
+N_BEST_CARS: int = 50
 actual_best: int = 0
 
 
@@ -246,7 +246,7 @@ if __name__ == '__main__':
     '''
     Initialize cars population
     '''
-    n_cars = 20
+    n_cars = 50
     assert(n_cars % 2 == 0)  # for parent selection sake
     n_sensors = 7
     cars_list = [car.Car(
@@ -276,7 +276,7 @@ if __name__ == '__main__':
     '''
     Load top cars from *track* into population
     '''
-    LOAD_BEST_CARS = False
+    LOAD_BEST_CARS = True
     if LOAD_BEST_CARS:
         load_best_cars(genetic_model, cars_list, n_sensors, track=track)
 
@@ -301,6 +301,7 @@ if __name__ == '__main__':
                 )
                 c.dead = True
         if keys[pygame.K_l]:  # l loads hall of fame cars
+            n_gen = 0
             load_best_cars(genetic_model, cars_list, n_sensors, track=track)
             for c in cars_list:
                 c.dead = True
