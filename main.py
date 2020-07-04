@@ -199,18 +199,6 @@ def update_cars_population(genetic_model, cars_list, win, n_gen):
         c.training_data = []
 
 
-'''
-TODO:
-3. ES desc
-6. krzyzowanie sieci
-7. wykres kiedy skrzyzowane sieci daly cos lepszego
-8. track 3 to test track
-- Training data file desc
-
-Crossovers: (choose as param)
-- new individual= father1 + uniform_01_random*(father2-father1)
-- take K layers from P1 and (N-K) layers from P2
-'''
 
 if __name__ == '__main__':
     pygame.init()
@@ -224,6 +212,8 @@ if __name__ == '__main__':
     print('(Tracks 1-2 are for training, Track 3 is for testing.)')
     print('\n' + '-' * 50 + '\n')
     track = int(input('Which track?: (1 / 2 / 3): '))
+    n_cars = int(input('\nNumber of cars in population (even): '))
+    assert(n_cars % 2 == 0)  # for parents selection sake
 
     '''
     Load track map and checkpoints
@@ -246,8 +236,6 @@ if __name__ == '__main__':
     '''
     Initialize cars population
     '''
-    n_cars = 50
-    assert(n_cars % 2 == 0)  # for parent selection sake
     n_sensors = 7
     cars_list = [car.Car(
         id=i,
