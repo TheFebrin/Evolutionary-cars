@@ -98,7 +98,10 @@ class GA:
         )
         return ids
 
-    def crossover1(self, parent1, parent2, parent1_id, parent2_id):
+    def crossover1(self, parent1_id, parent2_id, parents, parent_sigmas):
+        parent1 = parents[parent1_id],
+        parent2 = parents[parent2_id],
+
         '''
         # Creating two parent neural networks
 
@@ -217,19 +220,30 @@ class GA:
 
         return np.array(all_params)
 
-    def crossover2(self, parent1, parent2):
+    def crossover2(self, parent1_id, parent2_id, parents, parent_sigmas):
+        parent1 = parents[parent1_id]
+        parent2 = parents[parent2_id]
+        parent1_sigma = parent_sigmas[parent1_id]
+        parent2_sigma = parent_sigmas[parent2_id]
+
         child1, child2 = [], []
+        child1_sigma, child2_sigma = [], []
         for i in range(len(parent1)):
             coin_toss = np.random.randint(0, 2)
             if coin_toss % 2 == 0:
                 child1.append(parent1[i])
                 child2.append(parent2[i])
+                child1_sigma.append(parent1_sigma[i])
+                child2_sigma.append(parent2_sigma[i])
             else:
                 child1.append(parent2[i])
                 child2.append(parent1[i])
-        return child1, child2
+                child1_sigma.append(parent2_sigma[i])
+                child2_sigma.append(parent1_sigma[i])
+        return child1, child2, child1_sigma, child2_sigma
 
     def mutation1(self):
+        ''' ES algorithm based mutation '''
         X = self.population
         Sigmas = self.sigmas
 
@@ -241,9 +255,10 @@ class GA:
         self.sigmas = Sigmas
 
     def mutation2(self):
+        ''' Adding Gaussian Noise '''
         self.population += np.random.normal(0, 0.1, size=self.population.shape)
 
-    def select_new_population(self, n_gen, crossover=2):
+    def select_new_population(self, n_gen, crossover=1, mutation=2):
         '''
         Args:
             crossover : int
@@ -256,7 +271,7 @@ class GA:
         ids = self.parents_selection()
         parents = self.population[ids]
         self.training_data = self.training_data[ids]
-        # parent_sigmas = self.sigmas[ids]
+        parent_sigmas = self.sigmas[ids]
 
         assert(len(self.population) == len(parents) == self.population_size)
 
@@ -270,32 +285,43 @@ class GA:
             # Neural networks crossover
             if crossover == 1:
                 child = self.crossover1(
-                    parents[parents_ids[0]],
-                    parents[parents_ids[1]],
                     parents_ids[0],
-                    parents_ids[1]
+                    parents_ids[1],
+                    parents,
+                    parent_sigmas
                 )
                 children.append(child)
-                # child_sigmas = (
-                #     parent_sigmas[parents_ids[0]] + parent_sigmas[parents_ids[1]]
-                # ) / 2
-                # children_sigmas.append(child_sigmas)
+                child_sigmas = (
+                    parent_sigmas[parents_ids[0]] + parent_sigmas[parents_ids[1]]
+                ) / 2
+                children_sigmas.append(child_sigmas)
 
             # Simple toin coss over genotypes
-            if crossover == 2:
+            elif crossover == 2:
                 siblings = self.crossover2(
-                    parents[parents_ids[0]],
-                    parents[parents_ids[1]]
+                    parents_ids[0],
+                    parents_ids[1],
+                    parents,
+                    parent_sigmas
                 )
                 children.append(siblings[0])
                 children.append(siblings[1])
+                children_sigmas.append(siblings[2])
+                children_sigmas.append(siblings[3])
+
+            else:
+                raise ValueError('Wrong crossover type!')
 
         children = np.array(children)
         self.population = children
         self.sigmas = np.array(children_sigmas)
 
-        # self.mutation() # ES mutation
-        self.mutation2()  # adding noise
+        if mutation == 1:
+            self.mutation1() # ES mutation
+        elif mutation == 2:
+            self.mutation2()  # adding noise
+        else:
+            raise ValueError('Wrong mutation type!')
 
         # self.population_history.append(self.population)
         self.cost_history.append(

@@ -175,7 +175,8 @@ def update_cars_population(genetic_model, cars_list, win, n_gen):
     genetic_model.training_data = training_data
     new_genotypes = genetic_model.select_new_population(
         n_gen,
-        crossover=CROSSOVER_TYPE
+        crossover=CROSSOVER_TYPE,
+        mutation=MUTATION_TYPE
     )
 
     for i, c in enumerate(cars_list):
@@ -209,7 +210,7 @@ if __name__ == '__main__':
     '''
     print('\n' + '-' * 50 + '\n')
     print('Track 1: Easy\nTrack 2: Medium\nTrack 3: Hard')
-    print('(Tracks 1-2 are for training, Track 3 is for testing.)')
+    print('\n(Tracks 1-2 are for training, Track 3 (not implemented) is for testing.)')
     print('\n' + '-' * 50 + '\n')
     track = int(input('Which track?: (1 / 2 / 3): '))
     n_cars = int(input('\nNumber of cars in population (even): '))
@@ -253,6 +254,25 @@ if __name__ == '__main__':
     EVOLVE = True  # Population is freezed if False
     CROSSOVER_TYPE = 1  # neural network crossover
     # CROSSOVER_TYPE = 2  # random crossover
+    MUTATION_TYPE = 1  # ES mutation
+    # MUTATION_TYPE = 2  #  random noise
+
+    print('\n')
+    print('Change crossovers and mutations in line 254.')
+    if CROSSOVER_TYPE == 1:
+        print('Crossover type: Neural network crossover.')
+    elif CROSSOVER_TYPE == 2:
+        print('Crossover type: Random genes tossing.')
+    else:
+        raise ValueError('Wrong crossover type!')
+
+    if MUTATION_TYPE == 1:
+        print('Mutation type: ES mutation.')
+    elif MUTATION_TYPE == 2:
+        print('Mutation type: Gaussian noise')
+    else:
+        raise ValueError('Wrong mutation type!')
+
     n_parameters = cars_list[0].n_parameters
     genetic_model = genetic_algorithm.GA(
         n_sensors=n_sensors,
